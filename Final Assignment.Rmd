@@ -1,0 +1,99 @@
+---
+title: "Prediction Assignment Writeup"
+author: "Roberto Feraboli"
+date: "31/8/2020"
+output: html_document
+---
+
+# Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+The goal of the project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set.
+
+# Executive summary 
+
+I will perform the following task:
+1.Load the data
+2.Cleaning  the dataset by NA and irrelevant variables in order to reduce the predictors
+3.Data slicing for building the training and test data set 
+4.Apply the following machine learning algorithm:Prediction Tree,Random Forest,Boosting to the training set 
+5.Evaluate on the test set
+
+
+
+
+# 1.Load the data
+```{r}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+library(randomForest)
+library(knitr)
+setwd("C:/Users/lenovo/Desktop/COURSERA/DATA SCIENCE-COURSERA/MODULE 8 - Practical Machine Learning/FINAL ASSIGNMENT")
+training<- read.csv("pml-training.csv", sep=",",na.strings=c("NA","#DIV/0!", ""))
+str(training)
+training$classe<-as.factor(training$classe)
+testing<- read.csv("pml-testing.csv", sep=",",na.strings=c("NA","#DIV/0!", ""))
+str(testing)
+```
+
+# 2.Clean the dataset by NA and irrelevant variables
+```{r}
+training<-training[,colSums(is.na(training))==0]
+training<-training[,-c(1:7)]
+testing<-testing[,colSums(is.na(testing))==0]
+testing<-testing[,-c(1:7)]
+```
+
+
+
+# 3.Data Slicing
+```{r}
+library(kernlab)
+inTrain <- createDataPartition(y=training$classe,p=0.60, list=FALSE)
+sub_training <- training[inTrain,]
+sub_testing <-  training[-inTrain,]
+```
+
+
+
+
+
+# 5.ML Prediction tree
+```{r}
+mod_rpart <- train(classe ~ .,method="rpart",data=sub_training)
+print(mod_rpart$finalModel)
+rpart.plot(mod_rpart$finalModel)
+prediction_rpart<-predict(mod_rpart,newdata=sub_testing)
+sub_testing$classe<-as.factor(sub_testing$classe)
+confusionMatrix(prediction_rpart,sub_testing$classe)
+```
+
+# 6.ML Random Forest 
+```{r}
+set.seed(12345)
+mod_rf <- train(classe ~ ., data = sub_training, method = "rf", ntree = 100)
+prediction_rf<-predict(mod_rf,newdata=sub_testing)
+confusionMatrix(prediction_rf,sub_testing$classe)
+```
+
+
+# 6.ML Boosting
+```{r}
+mod_boosting <- train(classe ~ ., method="gbm",data=sub_training,verbose=FALSE)
+print(mod_boosting)
+prediction_boosting<-predict(mod_boosting,newdata=sub_testing)
+confusionMatrix(prediction_boosting,sub_testing$classe)
+```
+
+
+# CONCLUSION
+The Random Forest is the model with the highest accuracy rate 
+
+
+
+# 7.Applying the Random Forest  Model to the Test Data
+```{r}
+testing<-testing[,colSums(is.na(testing))==0]
+predict(mod_rf, testing)
+```
